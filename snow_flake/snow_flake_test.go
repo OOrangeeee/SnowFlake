@@ -1,7 +1,9 @@
 package snowflake
 
 import (
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -81,4 +83,32 @@ func TestConcurrentGeneration(t *testing.T) {
 		}
 		seen[id] = true
 	}
+}
+
+func TestMaxIDsPerSecond(t *testing.T) {
+	sf := NewSnowFlakeCreatorForSingle()
+	firstID := sf.GetId()
+	startTime := (firstID >> 22)
+	endTime := startTime + 1000
+	var count atomic.Int64
+	goNums := runtime.NumCPU()
+	var wg sync.WaitGroup
+	wg.Add(goNums)
+	for i := 0; i < goNums; i++ {
+		go func() {
+			defer wg.Done()
+			//start := time.Now()
+			for {
+				id := sf.GetId()
+				if (id>>22) >= startTime && (id>>22) <= endTime {
+					count.Add(1)
+				} else {
+					break
+				}
+			}
+			//t.Logf("%d号协程生成时间：%s，结束时间戳：%d", i, time.Since(start), time.Now().UnixMilli())
+		}()
+	}
+	wg.Wait()
+	t.Logf("一秒%d个协程%d核心，生成ID数量：%d", goNums, runtime.NumCPU(), count.Load())
 }

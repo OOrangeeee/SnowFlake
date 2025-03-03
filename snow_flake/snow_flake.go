@@ -114,6 +114,8 @@ func (sf *SnowFlakeCreator) createId() int64 {
 		sf.sequence
 }
 
+// GetId
+// 获取一个雪花ID
 func (sf *SnowFlakeCreator) GetId() int64 {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
